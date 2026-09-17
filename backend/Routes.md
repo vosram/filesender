@@ -2,26 +2,149 @@
 
 ## User related routes
 
+These user routes are mostly perform CRUD operations on the currently logged in user or be used by the admin to make changes.
+
 ## Auth Routes
 
-- `POST /auth/email/login`
-- `GET /auth/email/authenticate?token=<token-id>`
-- `/auth/google/login`
-- `/auth/google/callback`
-- `/auth/github/login`
-- `/auth/github/callback`
-- `POST /auth/refresh`
-- `GET /auth/check`
+- [x] `POST /api/auth/email/login`
+- [x] `POST /api/auth/email/verify`
+- [x] `GET /api/auth/google/login`
+- [x] `GET /api/auth/google/callback`
+- [x] `GET /api/auth/github/login`
+- [x] `GET /api/auth/github/callback`
+- [x] `POST /api/auth/refresh`
+- [x] `GET /api/auth/me`
+
+### JWT claims
+
+This is what claims should be set in JWT access tokens:
+
+```json
+{
+  "sub": "86a6b2b5-7e04-4d89-885e-48cdbd9da98e",
+  "iss": "FileSender",
+  "role": "user",
+  "membership": "pro",
+  "iat": 1516239022,
+  "exp": 1516249022
+}
+```
+
+### `POST /api/auth/email/login
+
+- Auth Required: False
+- Request Body: JSON
+- Response Body: JSON only on error
+
+This endpoint is used to send a login token to the users email. If the user doesn't have an account registered it will create an account. The login token should be a 32-byte base64url token generated from `crypto/rand` and saved in the DB table `email_login_tokens`. They should look something like `xpzNeE4DIQwRQiDAVoyxnV9qeHWwAb-P7c8uY6RBbUw`. The email sent to the user should add a link like `https://domain.com/auth/email/authenticate?token=<token>`. That will be a FE route that should fire off another call to the BE at `POST /api/auth/verify`.
+
+**Request Body:**
+
+```json
+{
+  "email": "name@email.com"
+}
+```
+
+### `POST /auth/email/verify`
+
+- Auth Required: False
+- Request Body: JSON
+- Response Body: JSON
+
+This endpoint validates the token with the DB table `email_login_tokens`. If valid, an httpOnly cookie with a refresh token and the accessToken in a JSON response should be returned.
+
+**Request Body**
+
+```json
+{
+  "token": "P9Awma1P6STMOn8zQ8p9jwyjkIIbihtrKt1jLVkzpnw"
+}
+```
+
+**Response Cookies**
+
+- name: refresh_token
+- secure: True
+- httpOnly: True
+- sameSite: 'Strict'
+- Path: '/api/auth'
+
+**Response Body**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZGU1Mjg3MC01NzU0LTQzMGQtYTkyMi05M2E5M2RkMDlhODAiLCJyb2xlIjoidXNlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNTE2MjQ5MDIyfQ.-YCNhR9TTejFxtJUJaRVG_rLad79nb6j9FHIrXYHdhw"
+}
+```
+
+### Google Oauth routes
+
+These routes should be configured with Go's [Oauth2](https://pkg.go.dev/golang.org/x/oauth2) package. The routes that should be setup are:
+
+- `GET /api/auth/google`
+- `GET /api/auth/google/callback`
+
+In order the get the [auth code url](https://pkg.go.dev/golang.org/x/oauth2#Config.AuthCodeURL), you need a `state` variable which can be a 16 byte random opaque value that should be saved in an httpOnly cookie before redirecting the client to the auth url, and should be checked with the returned state when `/api/auth/google/callback` is hit during the oauth redirect.
+
+The response to the callback endpoint should have a `refresh_token` sent via httpOnly cookie. A redirect should be sent to `/oauth-callback`. This `/oauth-callback` is a FE route that will hit `POST /api/auth/refresh` to get an access token from the `refresh_token` in the httpOnly cookie.
+
+### Github Oauth routes
+
+- `GET /api/auth/github`
+- `GET /api/auth/github/callback`
+
+### `POST /api/auth/refresh`
+
+- Auth Required: True
+- Request Body: False
+- Response Body: JSON
+
+This endpoint reads the `refreshToken` in the httpOnly cookie and validates it with the records in `refresh_tokens` table in DB. This route should also implement token rotation. If the refresh token is valid, a new token should be created and saved in the `refresh_tokens` table. The tokens saved in the DB should be hashed with SHA256 while the token is sent back via httpOnly cookie should be the unhashed token. This ensures that if the refreshTokens in the DB are compomised, they can't be immidiately used by the hackers.
+
+**Response Cookie**
+
+- Name: refresh_token
+- Value: `<token>`
+- httpOnly: true
+- secure: true
+- path: "/api/auth"
+- SameSite: "lax"
+
+**Response Body**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4NmE2YjJiNS03ZTA0LTRkODktODg1ZS00OGNkYmQ5ZGE5OGUiLCJpc3MiOiJGaWxlU2VuZGVyIiwicm9sZSI6InVzZXIiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6MTUxNjI0OTAyMn0._SojRglLGVpQ50Xv8yhCEHlIkyBrmKzVVmJMFpq2SCY"
+}
+```
+
+### `GET /api/auth/me`
+
+- Auth Required: True
+- Request Body: False
+- Response Body: JSON
+
+This endpoint is just a simple auth check primarily used for debugging and real time auth check for production.
+
+**Response Body**
+
+```json
+{
+  "name": "John Doe",
+  "role": "user"
+}
+```
 
 ## Files related routes
 
-- `GET /files`
-- `GET /files/:fileId`
-- `POST /files/upload`
-- `POST /files/upload/:clientId/complete`
-- `POST /files/upload/:clientId/abort`
-- `PATCH /files/:fileId`
-- `DELETE /files/:fileId`
+- `GET /api/files`
+- `GET /api/files/:fileId`
+- `POST /api/files/upload`
+- `POST /api/files/upload/:clientId/complete`
+- `POST /api/files/upload/:clientId/abort`
+- `PATCH /api/files/:fileId`
+- `DELETE /api/files/:fileId`
 
 ### `GET /files`
 
@@ -249,12 +372,12 @@ This endpoint is to update fields like filename and expiration date.
 
 ## Share related routes
 
-- `GET /shares`
-- `GET /shares/:shareId`
-- `POST /shares/:shareId/unlock`
-- `POST /shares`
-- `PUT /shares/:shareId`
-- `DELETE /shares/:shareId`
+- `GET /api/shares`
+- `GET /api/shares/:shareId`
+- `POST /api/shares/:shareId/unlock`
+- `POST /api/shares`
+- `PUT /api/shares/:shareId`
+- `DELETE /api/shares/:shareId`
 
 ### `GET /shares`
 
@@ -430,9 +553,9 @@ This endpoint deletes the share if it's owned by the logged in user or is admin.
 
 ## Membership routes
 
-- `POST /membership`
+- [x] `POST /api/membership`
 
-### `POST /membership`
+### `POST /api/membership`
 
 - Auth Required: True
 - Request Body: JSON
