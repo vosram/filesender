@@ -4,9 +4,9 @@
 
 These user routes are mostly perform CRUD operations on the currently logged in user or be used by the admin to make changes.
 
-- [ ] `GET /api/users/me`
-- [ ] `PUT /api/users/me`
-- [ ] `DELETE /api/users/me`
+- [x] `GET /api/users/me`
+- [x] `PUT /api/users/me`
+- [x] `DELETE /api/users/me`
 
 ### `GET /api/users/me`
 
@@ -72,12 +72,20 @@ BE verifies the token and updates the user's email.
 on success, FE will redirect to FE /account
 ```
 
+### `DELETE /api/users/me`
+
+- Auth Required: true
+- Request Body: None
+- Response Body: None
+
+This endpoint will delete the account forever. Eventually change this to have a 14 day account retention before permanent deletion.
+
 ## Auth Routes
 
 - [x] `POST /api/auth/email/login`
 - [x] `POST /api/auth/email/verify`
-- [ ] `POST /api/auth/email/change-verify`
-- [ ] `POST /api/auth/email/change-confirmation`
+- [x] `POST /api/auth/email/change-verify`
+- [x] `POST /api/auth/email/change-confirmation`
 - [x] `GET /api/auth/google/login`
 - [x] `GET /api/auth/google/callback`
 - [x] `GET /api/auth/github/login`
@@ -665,7 +673,7 @@ This endpoint deletes the share if it's owned by the logged in user or is admin.
 - Request Body: JSON
 - Response Body: False
 
-This endpoint changes the membership of a user. This is done by reading the JSON payload with the plan selected and the secret password to be accepted. The password should be a argon2id hash stored as an ENV variable. A special program should be used to create these hashed that will be used as ENV variables. When a user sends the cleartext passwords, the argon2id hash will be compared to the hash of the cleartext password from the request body.
+This endpoint changes the membership of a user. This is done by reading the JSON payload with the plan selected and the secret password to be accepted. The password should be available as an ENV variable. This allows them to easily be changed and inspected by the admin.
 
 **JSON Body Example**
 
