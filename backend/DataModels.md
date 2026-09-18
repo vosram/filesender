@@ -1,41 +1,34 @@
 # Database Models
 
-## Role Type ENUM
-
-```sql
-CREATE TYPE role_type
-AS
-ENUM('user', 'admin');
-```
-
-## Membership Type ENUM
-
-```sql
-CREATE TYPE membership_type
-AS
-ENUM('basic', 'pro', 'premium');
-```
-
-## filetype_type ENUM
-
-```sql
-CREATE TYPE filetype_type
-AS
-ENUM('data', 'doc', 'image', 'video');
-```
-
 ## Users Model
+
+Credential Type is a string but the backend will have set values to input. the values will be as follows:
+
+- "magic_email"
+- "google"
+
+Membership is a text but the backend will have set values to input. The values will be as follows:
+
+- "basic"
+- "pro"
+- "premium"
+
+Role are the permissions role a user has. It's just a text field, the backend will have set have fixed roles:
+
+- "user"
+- "admin"
 
 ```sql
 CREATE TABLE IF NOT EXISTS users(
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  membership membership_type NOT NULL DEFAULT 'basic',
-  banned_until TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  credential_type TEXT NOT NULL,
+  membership TEXT NOT NULL DEFAULT 'basic',
+  banned_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  role role_type NOT NULL DEFAULT 'user',
+  role TEXT NOT NULL DEFAULT 'user',
   last_login TIMESTAMPTZ
 );
 ```
@@ -74,7 +67,47 @@ CREATE TABLE IF NOT EXISTS email_login_tokens(
 );
 ```
 
+## Email Change Verify Tokens
+
+```sql
+CREATE TABLE IF NOT EXISTS email_change_verify_tokens(
+  token_hash TEXT PRIMARY KEY,
+  user_id UUID NOT NULL,
+  new_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  FOREIGN KEY (user_id)
+  REFERENCES users(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE
+);
+```
+
+## Email Change Confirmation Tokens
+
+```sql
+CREATE TABLE IF NOT EXISTS email_change_confirmation_tokens(
+  token_hash TEXT PRIMARY KEY,
+  user_id UUID NOT NULL,
+  new_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ NOT NULL,
+  FOREIGN KEY (user_id)
+  REFERENCES users(id)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE
+);
+```
+
 ## Files Model
+
+`filetype` is just a regular text field. The backend will have set fixed values such as:
+
+- "data"
+- "image"
+- "video"
+- "document"
+- "archive"
 
 ```sql
 CREATE TABLE IF NOT EXISTS files(
@@ -84,7 +117,7 @@ CREATE TABLE IF NOT EXISTS files(
   mime_type TEXT NOT NULL,
   key TEXT NOT NULL,
   owner_id UUID NOT NULL,
-  filetype filetype_type NOT NULL DEFAULT 'data',
+  filetype TEXT NOT NULL DEFAULT 'data',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
@@ -95,17 +128,16 @@ CREATE TABLE IF NOT EXISTS files(
 );
 ```
 
-## upload_status_type ENUM
-
-```sql
-CREATE TYPE upload_status_type
-AS
-ENUM('initiated', 'in_progress', 'completed', 'aborted');
-```
-
 ## Uploads Model
 
 Upload intents are created when the client requests presigned urls (`POST /files/upload`). They record the server-generated key, the s3 `upload_id` for multipart uploads, and the owner so the completion step can be validated server-side. No `files` record exists until the upload is confirmed.
+
+`status` is a regular text field and the backend will have fixed values such as:
+
+- "initiated"
+- "in_progress"
+- "completed"
+- "aborted"
 
 ```sql
 CREATE TABLE IF NOT EXISTS uploads(
@@ -117,7 +149,7 @@ CREATE TABLE IF NOT EXISTS uploads(
   key TEXT NOT NULL,
   upload_id TEXT,
   parts INTEGER NOT NULL DEFAULT 1,
-  status upload_status_type NOT NULL DEFAULT 'initiated',
+  status TEXT NOT NULL DEFAULT 'initiated',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   FOREIGN KEY (owner_id)

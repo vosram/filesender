@@ -4,10 +4,80 @@
 
 These user routes are mostly perform CRUD operations on the currently logged in user or be used by the admin to make changes.
 
+- [ ] `GET /api/users/me`
+- [ ] `PUT /api/users/me`
+- [ ] `DELETE /api/users/me`
+
+### `GET /api/users/me`
+
+- Auth Requred: True
+- Request Body: False
+- Response Body: JSON
+
+This endpoint gets the currently logged in users data. which is really just name and email. `credential` is what login method was used to create the account. This is important because `PUT /api/users/me` can only change the email if the user's credential value is `magic_email`.
+
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "credential": "email"
+}
+```
+
+### `PUT /api/users/me`
+
+- Auth Required: True
+- Request Body: JSON
+- Response Body: JSON
+
+This endpoint will update the name of the user and if the email is different, then it will launch the email change workflow. This workflow will only start if the user's credential is `magic_email`.
+
+Email change workflow would look like this:
+
+```text
+PUT /api/users/me
+  |
+  |
+  V
+Verification email send to current email
+link with token /email-change-verify?token=<token>
+  |
+  |
+  V
+User clicks on verification email
+GET /email-change-verify?token=<token>
+  |
+  |
+  V
+FE sends token to BE
+POST /api/auth/email/change-verify
+{
+  "verifyToken": "d953144ddab8e0337db17ea6137733f75c8a7435cb0e785d43c8cf166f2318af"
+}
+FE lets user know a new email has been sent to the new email to finalize verification
+  |
+  |
+  V
+User clicks link sent to new email
+GET /email-change-confirmation?token=<token>
+  |
+  |
+  V
+FE sends token to BE
+POST /api/auth/email/change-confirmation
+{
+  "confirmToken": "fe36208ef7fc352ea9ca78610960f3d8733d34205f12562b2a06b4c3cc97a3c1"
+}
+BE verifies the token and updates the user's email.
+on success, FE will redirect to FE /account
+```
+
 ## Auth Routes
 
 - [x] `POST /api/auth/email/login`
 - [x] `POST /api/auth/email/verify`
+- [ ] `POST /api/auth/email/change-verify`
+- [ ] `POST /api/auth/email/change-confirmation`
 - [x] `GET /api/auth/google/login`
 - [x] `GET /api/auth/google/callback`
 - [x] `GET /api/auth/github/login`
@@ -78,6 +148,40 @@ This endpoint validates the token with the DB table `email_login_tokens`. If val
 }
 ```
 
+### `POST /api/auth/email/change-verify`
+
+- Auth Required: true
+- Request Body: JSON
+- Response Body: None
+
+This endpoint is to verify that the currently logged in user is authorizing a change in the email login they're using.
+
+**Request Body:**
+
+```json
+{
+  "verifyToken": "39dd50ac61931c31328c0fc08fe22aed935a735364316789e62cf10cc534cf50"
+}
+```
+
+That token is hashed to sha256 and a DB lookup to table `email_change_verify_tokens` is performed to find that token. That DB record will have a `new_email` field where our BE will create a confirmation token and then that raw token to the new email. The raw token will be hashed and saved to DB table `email_change_confirmation_tokens`.
+
+### `POST /api/auth/email/change-confirmation`
+
+- Auth Required: true
+- Request Body: JSON
+- Response Body: None
+
+**Request Body:**
+
+```json
+{
+  "confirmToken": "e9574e55a57265ec5b77c56f3c0c1d184107c1cf3046d8f9e6d8d8ac5f8762a0"
+}
+```
+
+This endpoint is to confirm the new email address is working. the token is hashed to sha256 and a DB lookup on table `email_change_confirmation_tokens` is performed. If valid, the user's account email is changed to that of the new email. At this point we know the user has access to this new email.
+
 ### Google Oauth routes
 
 These routes should be configured with Go's [Oauth2](https://pkg.go.dev/golang.org/x/oauth2) package. The routes that should be setup are:
@@ -138,13 +242,13 @@ This endpoint is just a simple auth check primarily used for debugging and real 
 
 ## Files related routes
 
-- `GET /api/files`
-- `GET /api/files/:fileId`
-- `POST /api/files/upload`
-- `POST /api/files/upload/:clientId/complete`
-- `POST /api/files/upload/:clientId/abort`
-- `PATCH /api/files/:fileId`
-- `DELETE /api/files/:fileId`
+- [ ] `GET /api/files`
+- [ ] `GET /api/files/:fileId`
+- [ ] `POST /api/files/upload`
+- [ ] `POST /api/files/upload/:clientId/complete`
+- [ ] `POST /api/files/upload/:clientId/abort`
+- [ ] `PATCH /api/files/:fileId`
+- [ ] `DELETE /api/files/:fileId`
 
 ### `GET /files`
 
