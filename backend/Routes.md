@@ -258,7 +258,7 @@ This endpoint is just a simple auth check primarily used for debugging and real 
 - [ ] `PATCH /api/files/:fileId`
 - [ ] `DELETE /api/files/:fileId`
 
-### `GET /files`
+### `GET /api/files`
 
 - Auth Required: True
 - Query Params:
@@ -304,7 +304,7 @@ Response:
 }
 ```
 
-### `GET /files/:fileId`
+### `GET /api/files/:fileId`
 
 - Auth Required: True
 - Request Body: False
@@ -328,7 +328,7 @@ This endpoint gets all the available data for a file, including a presigned down
 }
 ```
 
-### `POST /files/upload`
+### `POST /api/files/upload`
 
 - Auth Required: True
 - Request Body: JSON
@@ -431,7 +431,7 @@ A cleanup job should also remove stale `uploads` rows.
 }
 ```
 
-### `POST /files/upload/:clientId/complete`
+### `POST /api/files/upload/:clientId/complete`
 
 - Auth Required: True
 - Request Body: JSON for Multipart uploads
@@ -457,13 +457,13 @@ For a single-part upload, the server verifies the object exists in s3 (e.g. `Hea
 }
 ```
 
-### `POST /files/upload/:clientId/abort`
+### `POST /api/files/upload/:clientId/abort`
 
 - Auth Required: True
 
 This endpoint cancels an in-progress upload. If the `uploads` row has an `upload_id`, the server calls `AbortMultipartUpload` and sets `status = 'aborted'`. Used when the user cancels an upload or it fails partway through.
 
-### `PATCH /files/:fileId`
+### `PATCH /api/files/:fileId`
 
 - Auth Required: True
 - Request Body: JSON
@@ -477,7 +477,7 @@ This endpoint is to update fields like filename and expiration date.
 }
 ```
 
-### `DELETE /files/:fileId`
+### `DELETE /api/files/:fileId`
 
 - Auth Required: True
 - Request Body: False
@@ -491,7 +491,7 @@ This endpoint is to update fields like filename and expiration date.
 - `PUT /api/shares/:shareId`
 - `DELETE /api/shares/:shareId`
 
-### `GET /shares`
+### `GET /api/shares`
 
 - Auth Required: True
 - Request Body: False
@@ -534,14 +534,14 @@ This endpoint gets all of the shares info for currently logged in user. There sh
 }
 ```
 
-### `GET /shares/:shareId`
+### `GET /api/shares/:shareId`
 
 - Auth Required: Only ifpassword protected
 - Response Body: JSON
 
 This endpoint is multi-faceted. If the share is not password protected, it returns the files with presigned s3 download urls. No auth header required. However, is the share is password protected, it requires a jwt token passed into the header that either `sub` is the owner of the share or has `shareId` set to the `:shareId`. This ensures that public invidiuals with no account can still download password protected shares.
 
-The front end will show a "Password required" message is the share is protected. the endpoint `POST /shares/:shareId/unlock` should be submitted with the password. the returned jwt will be used by the frontend to insert the `Authorization` header when calling `GET /shares/:shareId` again to get the file urls.
+The front end will show a "Password required" message is the share is protected. the endpoint `POST /api/shares/:shareId/unlock` should be submitted with the password. The returned jwt will be used by the frontend to insert the `Authorization` header when calling `GET /api/shares/:shareId` again to get the file urls.
 
 File download urls should expire after 15 minutes
 
@@ -568,7 +568,7 @@ File download urls should expire after 15 minutes
 }
 ```
 
-### `POST /shares/:shareId/unlock`
+### `POST /api/shares/:shareId/unlock`
 
 - Auth Required: False
 - Request Body: JSON
@@ -594,7 +594,7 @@ The password is checked against the hashed password in the `shares` DB table. If
 }
 ```
 
-### `POST /shares`
+### `POST /api/shares`
 
 - Auth Required: True
 - Request Body: JSON
@@ -624,7 +624,7 @@ This endpoint creates a new share by the current user. This request body must in
 
 On successful creation, only a successful status code will be returned: `201`, no body.
 
-### `PUT /shares/:shareId`
+### `PUT /api/shares/:shareId`
 
 - Auth Required: True
 - Request Body: JSON
@@ -655,7 +655,7 @@ Pretty much what it looks like. One detail though is that the `files` field on t
 }
 ```
 
-### `DELETE /shares/:shareId`
+### `DELETE /api/shares/:shareId`
 
 - Auth Required: True
 - Request Body: False
