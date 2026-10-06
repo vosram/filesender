@@ -34,6 +34,7 @@ func main() {
 	// Auth Routes
 	r.POST("/api/auth/email/login", apiConfig.EmailLogin)
 	r.POST("/api/auth/email/verify", apiConfig.EmailLoginVerify)
+	r.POST("/api/auth/refresh", apiConfig.RefreshJWT)
 	// Start server on port 8080 (default)
 	// Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows)
 	r.Run()

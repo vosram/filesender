@@ -139,3 +139,71 @@ func (api *apiConfig) EmailLoginVerify(c *gin.Context) {
 	auth.SaveRefreshTokenCookie(c, refreshToken)
 	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken})
 }
+
+// POST /api/auth/refresh
+func (api *apiConfig) RefreshJWT(c *gin.Context) {
+	refreshToken, err := auth.GetRefreshTokenFromCookie(c)
+	if err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": "refresh token missing"})
+		return
+	}
+
+	refreshTokenHash, err := auth.CreateTokenHash(refreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash token"})
+		return
+	}
+	dbToken, err := api.db.ConsumeRefreshToken(c, refreshTokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "token invalid"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to connect to db"})
+		return
+	}
+
+	if time.Now().After(dbToken.ExpiresAt.Time) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "token expired"})
+		return
+	}
+	user, err := api.db.FindUserById(c, dbToken.UserID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusForbidden, gin.H{"error": "couldn't find user"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to connect to db"})
+		return
+	}
+	if user.BannedUntil.Valid && time.Now().Before(user.BannedUntil.Time) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "user is currently banned", "banned": user.BannedUntil.Time.Format(time.RFC3339)})
+		return
+	}
+
+	newRefreshToken := auth.CreateOpaqueToken()
+	newRefreshTokenHash, err := auth.CreateTokenHash(newRefreshToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash new refresh token"})
+		return
+	}
+	accessToken, err := auth.CreateAccessJWT(user, api.JWTSecret)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create access JWT"})
+		return
+	}
+	err = api.db.SaveRefreshToken(c, database.SaveRefreshTokenParams{
+		TokenHash: newRefreshTokenHash,
+		UserID:    user.ID,
+		ExpiresAt: pgtype.Timestamptz{
+			Time:  time.Now().Add(auth.MaxRefreshCookieMaxAge * time.Second),
+			Valid: true,
+		},
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save new refresh token"})
+		return
+	}
+	auth.SaveRefreshTokenCookie(c, newRefreshToken)
+	c.JSON(http.StatusOK, gin.H{"accessToken": accessToken})
+}
