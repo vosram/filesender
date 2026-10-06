@@ -114,7 +114,7 @@ This is what claims should be set in JWT access tokens:
 - Request Body: JSON
 - Response Body: JSON only on error
 
-This endpoint is used to send a login token to the users email. If the user doesn't have an account registered it will create an account. The login token should be a 32-byte base64url token generated from `crypto/rand` and saved in the DB table `email_login_tokens`. They should look something like `xpzNeE4DIQwRQiDAVoyxnV9qeHWwAb-P7c8uY6RBbUw`. The email sent to the user should add a link like `https://domain.com/auth/email/authenticate?token=<token>`. That will be a FE route that should fire off another call to the BE at `POST /api/auth/verify`.
+This endpoint is used to send a login token to the users email. If the user doesn't have an account registered it will create an account. The login token should be a 32-byte hexidecimal token generated from `crypto/rand` and saved as a sha256 hash in the DB table `email_login_tokens`. They should look something like `ceb9e8b4169fa05218a0d51bca1fb99255babacadc076134a774fe954beec665`. The email sent to the user should add a link like `https://domain.com/auth/email/authenticate?token=<token>`. That will be a FE route that should fire off another call to the BE at `POST /api/auth/email/verify`.
 
 **Request Body:**
 
@@ -124,7 +124,7 @@ This endpoint is used to send a login token to the users email. If the user does
 }
 ```
 
-### `POST /auth/email/verify`
+### `POST /api/auth/email/verify`
 
 - Auth Required: False
 - Request Body: JSON
@@ -136,7 +136,7 @@ This endpoint validates the token with the DB table `email_login_tokens`. If val
 
 ```json
 {
-  "token": "P9Awma1P6STMOn8zQ8p9jwyjkIIbihtrKt1jLVkzpnw"
+  "token": "44400febbed7df5223a64fe5206aecccda88613229ab04a5c4c1f9caebf20f78"
 }
 ```
 

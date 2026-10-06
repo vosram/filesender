@@ -11,28 +11,86 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createUserAndReturnId = `-- name: CreateUserAndReturnId :one
-INSERT INTO users (id, name, email, credential_type)
+const createUserAndReturnUser = `-- name: CreateUserAndReturnUser :one
+INSERT INTO users (id, name, email, credential_type, last_login)
 VALUES (
   gen_random_uuid(),
   $1,
   $2,
-  $3
+  $3,
+  now()
 )
-RETURNING id
+RETURNING id, name, email, credential_type, membership, banned_until, created_at, updated_at, role, last_login
 `
 
-type CreateUserAndReturnIdParams struct {
+type CreateUserAndReturnUserParams struct {
 	Name           string
 	Email          string
 	CredentialType string
 }
 
-func (q *Queries) CreateUserAndReturnId(ctx context.Context, arg CreateUserAndReturnIdParams) (pgtype.UUID, error) {
-	row := q.db.QueryRow(ctx, createUserAndReturnId, arg.Name, arg.Email, arg.CredentialType)
-	var id pgtype.UUID
-	err := row.Scan(&id)
-	return id, err
+func (q *Queries) CreateUserAndReturnUser(ctx context.Context, arg CreateUserAndReturnUserParams) (User, error) {
+	row := q.db.QueryRow(ctx, createUserAndReturnUser, arg.Name, arg.Email, arg.CredentialType)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.CredentialType,
+		&i.Membership,
+		&i.BannedUntil,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const findUserByEmail = `-- name: FindUserByEmail :one
+SELECT id, name, email, credential_type, membership, banned_until, created_at, updated_at, role, last_login FROM users
+WHERE email = $1
+`
+
+func (q *Queries) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, findUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.CredentialType,
+		&i.Membership,
+		&i.BannedUntil,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+		&i.LastLogin,
+	)
+	return i, err
+}
+
+const findUserById = `-- name: FindUserById :one
+SELECT id, name, email, credential_type, membership, banned_until, created_at, updated_at, role, last_login FROM users
+WHERE id = $1
+`
+
+func (q *Queries) FindUserById(ctx context.Context, id pgtype.UUID) (User, error) {
+	row := q.db.QueryRow(ctx, findUserById, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.CredentialType,
+		&i.Membership,
+		&i.BannedUntil,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Role,
+		&i.LastLogin,
+	)
+	return i, err
 }
 
 const updateLastLoginByUserID = `-- name: UpdateLastLoginByUserID :exec

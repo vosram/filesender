@@ -1,13 +1,9 @@
 -- +goose up
 CREATE TABLE email_login_tokens(
   token_hash TEXT PRIMARY KEY,
-  user_id UUID NOT NULL,
+  email TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL,
-  FOREIGN KEY (user_id)
-  REFERENCES users(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE
+  expires_at TIMESTAMPTZ NOT NULL
 );
 
 -- +goose down

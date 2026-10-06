@@ -35,7 +35,7 @@ CREATE TABLE users(
 
 ## Refresh_Tokens
 
-Refresh tokens will be 32 byte base64 url safe generated from `crypto/rand`. These refresh_tokens should only be stored in httpOnly cookies. the refreshToken saved in DB should be a SHA256 hash of the token
+Refresh tokens will be 32 byte hexidecimal safe generated from `crypto/rand`. These refresh_tokens should only be stored in httpOnly cookies. the refreshToken saved in DB should be a SHA256 hash of the token
 
 ```sql
 CREATE TABLE refresh_tokens(
@@ -52,18 +52,14 @@ CREATE TABLE refresh_tokens(
 
 ## Email Login Tokens
 
-Email login tokens will be 32 byte base64 url safe generated from `crypto/rand`. The token will be added to a url in an email link. The token saved to DB should be a SHA256 hash of this token.
+Email login tokens will be 32 byte hexidecimal safe generated from `crypto/rand`. The token will be added to a url in an email link. The token saved to DB should be a SHA256 hash of this token.
 
 ```sql
 CREATE TABLE email_login_tokens(
   token_hash TEXT PRIMARY KEY,
-  user_id UUID NOT NULL,
+  email TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  expires_at TIMESTAMPTZ NOT NULL,
-  FOREIGN KEY (user_id)
-  REFERENCES users(id)
-  ON DELETE CASCADE
-  ON UPDATE CASCADE
+  expires_at TIMESTAMPTZ NOT NULL
 );
 ```
 

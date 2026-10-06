@@ -26,7 +26,7 @@ type EmailChangeVerifyToken struct {
 
 type EmailLoginToken struct {
 	TokenHash string
-	UserID    pgtype.UUID
+	Email     string
 	CreatedAt pgtype.Timestamptz
 	ExpiresAt pgtype.Timestamptz
 }
